@@ -1,0 +1,65 @@
+-- filename :
+-- {{table_name}}-audit-archive-tables.sql
+
+-- tables:	
+-- 1.{{table_name}} table
+-- 2.{{table_name}}_archive table 
+-- 3.{{table_name}}_audit table 
+
+-- ====================================
+
+-- 1.
+-- Table: public.{{table_name}}
+
+-- DROP TABLE IF EXISTS public.{{table_name}};
+
+{{original_table_Script}}
+
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.{{table_name}}
+    OWNER to {{owner}};
+	
+----------------------------------------------------------------------------
+-- 2.
+-- Table: public.{{table_name}}_archive
+
+-- DROP TABLE IF EXISTS public.{{table_name}}_archive;
+
+CREATE TABLE IF NOT EXISTS public.{{table_name}}_archive
+(
+    _id uuid NOT NULL DEFAULT gen_random_uuid(),
+  {{table_data}}
+    "auditUpdatedOn" timestamp without time zone,
+    "auditOperationType" character varying(50) COLLATE pg_catalog."default" DEFAULT 'delete'::character varying,
+    "auditOriginalId" character varying(100) COLLATE pg_catalog."default",
+    CONSTRAINT {{table_name}}_archive_pkey PRIMARY KEY (_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.{{table_name}}_archive
+    OWNER to {{owner}};
+	
+------------------------------------------------------
+-- 3.
+-- Table: public.{{table_name}}_audit
+
+-- DROP TABLE IF EXISTS public.{{table_name}}_audit;
+
+CREATE TABLE IF NOT EXISTS public.{{table_name}}_audit
+(
+    _id uuid NOT NULL DEFAULT gen_random_uuid(),
+   {{table_data}}
+    "auditUpdatedOn" timestamp without time zone,
+    "auditOperationType" character varying(50) COLLATE pg_catalog."default" DEFAULT 'delete'::character varying,
+    "auditOriginalId" character varying(100) COLLATE pg_catalog."default",
+    CONSTRAINT {{table_name}}_audit_pkey PRIMARY KEY (_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.{{table_name}}_audit
+    OWNER to {{owner}};
+	

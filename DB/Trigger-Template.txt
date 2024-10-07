@@ -1,0 +1,102 @@
+--filename :
+--{{table_name}}_triggers.sql
+
+--trigger function
+--1. log_{{table_name}}_update
+--2. log_{{table_name}}_delete
+
+--creation of trigger 
+--3.t_log_{{table_name}}_delete
+--4.t_log_{{table_name}}_update
+
+-------------------------------------------
+
+--3. log_{{table_name}}_update
+-- FUNCTION: public.log_{{table_name}}_update()
+-- DROP FUNCTION IF EXISTS public.log_{{table_name}}_update();
+
+
+CREATE OR REPLACE FUNCTION public.log_{{table_name}}_update()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$
+BEGIN
+INSERT INTO public.{{table_name}}_audit(
+ {{table_data_audit_archive}}
+"auditUpdatedOn",
+"auditOperationType",
+"auditOriginalId"
+) 
+SELECT 
+{{old_table_data_audit_archive}}
+now(),
+'update',
+OLD.{{table_name}}_id
+FROM public.{{table_name}}
+WHERE public.{{table_name}}.{{table_name}}_id = OLD.{{table_name}}_id;
+RETURN NEW;
+END;
+$BODY$;
+
+ALTER FUNCTION public.log_{{table_name}}_update()
+    OWNER TO {{owner}};
+
+----------------------------------------------
+--4. log_{{table_name}}_delete
+-- FUNCTION: public.log_{{table_name}}_delete()
+-- DROP FUNCTION IF EXISTS public.log_{{table_name}}_delete();
+
+CREATE OR REPLACE FUNCTION public.log_{{table_name}}_delete()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$
+BEGIN
+INSERT INTO public.{{table_name}}_archive(
+{{table_data_audit_archive}} 
+"auditUpdatedOn",
+"auditOperationType",
+"auditOriginalId"
+) 
+VALUES (
+{{old_table_data_audit_archive}} 
+now(),
+'delete',
+OLD.{{table_name}}_id
+);
+RETURN NEW;
+END;
+$BODY$;
+
+ALTER FUNCTION public.log_{{table_name}}_delete()
+    OWNER TO {{owner}};
+
+
+--------------------------------------------------------
+
+--5.t_log_{{table_name}}_delete
+-- Trigger: t_log_{{table_name}}_delete
+-- DROP TRIGGER IF EXISTS t_log_{{table_name}}_delete ON public.{{table_name}};
+
+CREATE TRIGGER t_log_{{table_name}}_delete
+    AFTER DELETE
+    ON public.{{table_name}}
+    FOR EACH ROW
+    EXECUTE FUNCTION public.log_{{table_name}}_delete();
+	
+--6.t_log_{{table_name}}_update
+-- Trigger: t_log_{{table_name}}_update
+-- DROP TRIGGER IF EXISTS t_log_{{table_name}}_update ON public.{{table_name}};
+
+CREATE TRIGGER t_log_{{table_name}}_update
+    BEFORE UPDATE 
+    ON public.{{table_name}}
+    FOR EACH ROW
+    EXECUTE FUNCTION public.log_{{table_name}}_update();
+	
+	
+	
+	

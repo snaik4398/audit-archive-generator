@@ -1,0 +1,118 @@
+
+--liquibase formatted sql
+
+--changeset {{author}}:{{current_date}}-log_{{table_name}}_update failOnError:false splitStatements:false
+--preconditions onFail="MARK_RAN" onFailMessage="Function does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM pg_proc WHERE proname = 'log_{{table_name}}_update' AND prorettype <> 'pg_catalog.cstring'::regtype
+--comment:Check function exists or not. if exists, Mark as Ran.
+
+
+--3. log_{{table_name}}_update
+-- FUNCTION: public.log_{{table_name}}_update()
+-- DROP FUNCTION IF EXISTS public.log_{{table_name}}_update();
+
+
+CREATE OR REPLACE FUNCTION public.log_{{table_name}}_update()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$
+BEGIN
+INSERT INTO public.{{table_name}}_audit(
+ {{table_data_audit_archive}},
+"auditUpdatedOn",
+"auditOperationType",
+"auditOriginalId"
+) 
+SELECT 
+{{old_table_data_audit_archive}}
+now(),
+'update',
+OLD.{{table_name}}_id
+FROM public.{{table_name}}
+WHERE public.{{table_name}}.{{table_name}}_id = OLD.{{table_name}}_id;
+RETURN NEW;
+END;
+$BODY$;
+
+ALTER FUNCTION public.log_{{table_name}}_update()
+    OWNER TO {{owner}};
+
+----------------------------------------------
+
+--liquibase formatted sql
+
+--changeset {{author}}:{{current_date}}-log_{{table_name}}_delete failOnError:false splitStatements:false
+--preconditions onFail="MARK_RAN" onFailMessage="Function does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM pg_proc WHERE proname = 'log_{{table_name}}_delete' AND prorettype <> 'pg_catalog.cstring'::regtype
+--comment:Check function exists or not. if exists, Mark as Ran.
+
+
+
+--4. log_{{table_name}}_delete
+-- FUNCTION: public.log_{{table_name}}_delete()
+-- DROP FUNCTION IF EXISTS public.log_{{table_name}}_delete();
+
+CREATE OR REPLACE FUNCTION public.log_{{table_name}}_delete()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$
+BEGIN
+INSERT INTO public.{{table_name}}_archive(
+{{table_data_audit_archive}},
+"auditUpdatedOn",
+"auditOperationType",
+"auditOriginalId"
+) 
+VALUES (
+{{old_table_data_audit_archive}} 
+now(),
+'delete',
+OLD.{{table_name}}_id
+);
+RETURN NEW;
+END;
+$BODY$;
+
+ALTER FUNCTION public.log_{{table_name}}_delete()
+    OWNER TO {{owner}};
+
+
+--------------------------------------------------------
+
+--changeset {{author}}:{{current_date}}-t_log_{{table_name}}_delete failOnError:false splitStatements:false
+--preconditions onFail="MARK_RAN" onFailMessage="Trigger does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM information_schema.triggers WHERE trigger_name = 't_{{table_name}}_delete'
+--comment:Check function exists or not. if exists, Mark as Ran.
+
+--5.t_log_{{table_name}}_delete
+-- Trigger: t_log_{{table_name}}_delete
+-- DROP TRIGGER IF EXISTS t_log_{{table_name}}_delete ON public.{{table_name}};
+
+CREATE TRIGGER t_log_{{table_name}}_delete
+    AFTER DELETE
+    ON public.{{table_name}}
+    FOR EACH ROW
+    EXECUTE FUNCTION public.log_{{table_name}}_delete();
+	
+--changeset {{author}}:{{current_date}}-t_log_{{table_name}}_update failOnError:false splitStatements:false
+--preconditions onFail="MARK_RAN" onFailMessage="Trigger does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM information_schema.triggers WHERE trigger_name = 't_{{table_name}}_update'
+--comment:Check function exists or not. if exists, Mark as Ran.
+	
+--6.t_log_{{table_name}}_update
+-- Trigger: t_log_{{table_name}}_update
+-- DROP TRIGGER IF EXISTS t_log_{{table_name}}_update ON public.{{table_name}};
+
+CREATE TRIGGER t_log_{{table_name}}_update
+    BEFORE UPDATE 
+    ON public.{{table_name}}
+    FOR EACH ROW
+    EXECUTE FUNCTION public.log_{{table_name}}_update();
+	
+	
+	
+	

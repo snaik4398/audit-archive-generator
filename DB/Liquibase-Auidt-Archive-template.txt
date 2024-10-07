@@ -1,0 +1,100 @@
+
+--liquibase formatted sql
+
+--changeset {{author}}:{{current_date}}-{{enum_name}} failOnError:false
+--preconditions onFail="MARK_RAN" onFailMessage="Type does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM pg_catalog.pg_type WHERE typname = '{{enum_name}}'
+--comment:Check type exists or not. if exists, Mark as Ran.
+
+CREATE TYPE public.{{enum_name}} AS ENUM
+    ('{{value_1}}', '{{value_1}}');
+
+COMMENT ON TYPE public.{{enum_name}}
+    IS 'The {{enum_name}} related to {{table_name}} table is captured here.';
+	
+	
+---------------------------------------------------------
+
+
+--liquibase formatted sql
+
+--changeset {{author}}:{{current_date}}-{{table_name}} failOnError:false
+--preconditions onFail="MARK_RAN" onFailMessage="Table does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{{table_name}}'
+--comment:Check table exists or not. if exists, Mark as Ran.
+
+
+
+-- 1.
+-- Table: public.{{table_name}}
+
+-- DROP TABLE IF EXISTS public.{{table_name}};
+
+CREATE TABLE IF NOT EXISTS public.{{table_name}}
+(
+{{table_data}}
+ CONSTRAINT {{table_name}}_pkey PRIMARY KEY ({{table_name}}_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.{{table_name}}
+    OWNER to {{owner}};
+	
+----------------------------------------------------------------------------
+
+--changeset {{author}}:{{current_date}}-{{table_name}}_archive failOnError:false
+--preconditions onFail="MARK_RAN" onFailMessage="Table does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{{table_name}}_archive'
+--comment:Check table exists or not. if exists, Mark as Ran.
+
+
+
+-- 2.
+-- Table: public.{{table_name}}_archive
+
+-- DROP TABLE IF EXISTS public.{{table_name}}_archive;
+
+CREATE TABLE IF NOT EXISTS public.{{table_name}}_archive
+(
+    _id uuid NOT NULL DEFAULT gen_random_uuid(),
+  {{table_data}}
+    "auditUpdatedOn" timestamp without time zone,
+    "auditOperationType" character varying(50) COLLATE pg_catalog."default" DEFAULT 'delete'::character varying,
+    "auditOriginalId" character varying(100) COLLATE pg_catalog."default",
+    CONSTRAINT {{table_name}}_archive_pkey PRIMARY KEY (_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.{{table_name}}_archive
+    OWNER to {{owner}};
+	
+------------------------------------------------------
+
+--changeset {{author}}:{{current_date}}-{{table_name}}_audit failOnError:false
+--preconditions onFail="MARK_RAN" onFailMessage="Table does not exist, creating..."
+--precondition-sql-check expectedResult:0 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{{table_name}}_audit'
+--comment:Check table exists or not. if exists, Mark as Ran.
+
+
+-- 3.
+-- Table: public.{{table_name}}_audit
+
+-- DROP TABLE IF EXISTS public.{{table_name}}_audit;
+
+CREATE TABLE IF NOT EXISTS public.{{table_name}}_audit
+(
+    _id uuid NOT NULL DEFAULT gen_random_uuid(),
+   {{table_data}}
+    "auditUpdatedOn" timestamp without time zone,
+    "auditOperationType" character varying(50) COLLATE pg_catalog."default" DEFAULT 'delete'::character varying,
+    "auditOriginalId" character varying(100) COLLATE pg_catalog."default",
+    CONSTRAINT {{table_name}}_audit_pkey PRIMARY KEY (_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.{{table_name}}_audit
+    OWNER to {{owner}};
+	
