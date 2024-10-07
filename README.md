@@ -1,7 +1,4 @@
 This repo is used to create the audit archive script of the table according to liquibase.
-
-<liquibase-version>4.6.2</liquibase-version>
-
 			
    <!-- Liquibase -->
 			<dependency>
@@ -9,7 +6,7 @@ This repo is used to create the audit archive script of the table according to l
 				<artifactId>liquibase-core</artifactId>
 				<version>${liquibase-version}</version>
 			</dependency>
-   <liquibase-version>4.6.2</liquibase-version>
+   liquibase Version: <liquibase-version>4.6.2</liquibase-version>
    =======================================================
 template folder : 
 DB/Liquibase-Auidt-Archive-template.txt
